@@ -1,328 +1,135 @@
-# Task Management API
+# Team Management API
 
-Enterprise-style Task Management API built with Node.js, Express.js, MongoDB, and Mongoose. It includes authentication, role-based authorization, task CRUD, comments, subtasks, activity logs, audit metadata, attachments from comment payloads, and time tracking.
+A Node.js, Express, and MongoDB API module for enterprise team management with invitation workflows, role-based access control, workload analytics, and task management.
 
-## Tech Stack
+## Features
 
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT authentication
-- Joi request validation
-- Morgan logging
-- Helmet and CORS security middleware
+- `GET /api/team` - Retrieve all team members (Admin and Manager only)
+- `POST /api/team/invite` - Send email invitations with secure invitation tokens
+- `POST /api/team/accept-invite` - Accept invitation, set password, complete profile, and activate account
+- `PUT /api/team/:id/role` - Update a member's role (Admin only)
+- `PUT /api/team/:id/status` - Activate or deactivate a member
+- `GET /api/team/:id/tasks` - Fetch all tasks assigned to a team member
+- `GET /api/team/workload` - Generate workload overview with pending, overdue, and distribution metrics
+- Authentication and role-based authorization
+- Activity logging and centralized error handling
+- Pagination support for team member and task listings
 
-## Project Structure
+## Getting Started
 
-```text
-config/
-  db.js
-  index.js
-src/
-  controllers/
-  middleware/
-  models/
-  routes/
-  services/
-  utils/
-server.js
-```
+### Prerequisites
 
-## Setup
+- Node.js 18+ or newer
+- MongoDB running locally or remotely
+- SMTP credentials for email delivery
 
-Install dependencies:
+### Installation
+
+1. Clone the repository or copy files into your workspace.
+2. Install dependencies:
 
 ```bash
 npm install
 ```
 
-Create a `.env` file from `.env.example`:
-
-```env
-PORT=4000
-MONGODB_URI=mongodb://localhost:27017/task_management_api
-JWT_SECRET=supersecretkey
-JWT_EXPIRES_IN=2d
-```
-
-Start the API:
+3. Create a `.env` file in the project root using `.env.example`:
 
 ```bash
-npm start
+cp .env.example .env
 ```
 
-For development:
+4. Update `.env` with your MongoDB URI and email service credentials.
+
+### Environment Variables
+
+Required variables:
+
+- `PORT` - Server port (default: 4000)
+- `MONGO_URI` - MongoDB connection string
+- `JWT_SECRET` - Secret for signing auth tokens
+- `JWT_EXPIRES_IN` - auth token expiration (example: `1d`)
+- `INVITE_TOKEN_EXPIRES_IN` - invitation token expiration in days
+- `EMAIL_HOST` - SMTP hostname
+- `EMAIL_PORT` - SMTP port
+- `EMAIL_SECURE` - `true` or `false`
+- `EMAIL_USER` - SMTP username
+- `EMAIL_PASS` - SMTP password
+- `EMAIL_FROM` - sender address for invitation emails
+- `APP_BASE_URL` - base URL used for invitation links
+
+### Running the Server
 
 ```bash
 npm run dev
 ```
 
-Health check:
+Then visit `http://localhost:4000` to confirm the API is running.
 
-```http
-GET /api/health
-```
+## API Endpoints
 
-## Authentication
+### Authentication
 
-All task routes require a bearer token.
+- `POST /api/auth/login`
+  - body: `{ "email": "user@example.com", "password": "password" }`
 
-```http
-Authorization: Bearer <token>
-```
+### Team Management
 
-### Register
+- `GET /api/team`
+  - Roles: `Admin`, `Manager`
+  - Query params: `page`, `limit`
 
-```http
-POST /api/auth/register
-```
+- `POST /api/team/invite`
+  - Roles: `Admin`, `Manager`
+  - body: `{ "email": "invitee@example.com", "role": "Developer" }`
 
-```json
-{
-  "name": "Project Manager",
-  "email": "manager@example.com",
-  "password": "password123",
-  "role": "project_manager"
-}
-```
+- `POST /api/team/accept-invite`
+  - body: `{ "token": "...", "password": "secret", "name": "Jane Doe", "profile": { "title": "Engineer" } }`
 
-Allowed roles:
+- `PUT /api/team/:id/role`
+  - Roles: `Admin`
+  - body: `{ "role": "Manager" }`
 
-- `admin`
-- `project_manager`
-- `member`
+- `PUT /api/team/:id/status`
+  - Roles: `Admin`
+  - body: `{ "status": "Active" }`
 
-### Login
+- `GET /api/team/:id/tasks`
+  - Roles: authenticated users
+  - Query params: `page`, `limit`
 
-```http
-POST /api/auth/login
-```
+- `GET /api/team/workload`
+  - Roles: `Admin`, `Manager`
 
-```json
-{
-  "email": "manager@example.com",
-  "password": "password123"
-}
-```
+## Data Models
 
-## Task Endpoints
+### User
 
-Base URL:
+- `email`
+- `name`
+- `role`
+- `password`
+- `status`
+- `profile`
+- `invitationToken`
+- `invitationTokenExpiresAt`
 
-```http
-/api/tasks
-```
+### Task
 
-### Create Task
-
-```http
-POST /api/tasks
-```
-
-Allowed roles: `admin`, `project_manager`
-
-```json
-{
-  "title": "Build task API",
-  "description": "Create task management endpoints",
-  "project_id": "665f1f77c13a4a0012b90c11",
-  "milestone_id": "665f1f77c13a4a0012b90c12",
-  "assignee_id": "665f1f77c13a4a0012b90c13",
-  "priority": "high",
-  "dueDate": "2026-07-01",
-  "estimatedHours": 12,
-  "tags": ["api", "backend"]
-}
-```
-
-### List Tasks
-
-```http
-GET /api/tasks
-```
-
-Supports pagination and filtering:
-
-```http
-GET /api/tasks?page=1&limit=20&project=<projectId>&assignee=<userId>&status=in_progress&priority=high&dueDate=2026-07-01
-```
-
-Also supports date ranges:
-
-```http
-GET /api/tasks?dueDateFrom=2026-07-01&dueDateTo=2026-07-31
-```
-
-Filters:
-
-- `project`
-- `assignee`
+- `title`
+- `description`
 - `status`
 - `priority`
-- `dueDate`
-- `dueDateFrom`
-- `dueDateTo`
-- `page`
-- `limit`
-
-Members only see tasks assigned to them or created by them. Admins and project managers can see all matching tasks.
-
-### Get Task Details
-
-```http
-GET /api/tasks/:id
-```
-
-Returns complete task information, including:
-
-- Project
-- Milestone
-- Assignee
-- Comments and discussion threads
-- Subtasks
-- Attachments
-- Activity history
-- Time logs
-- Creator and updater details
-
-### Update Task
-
-```http
-PUT /api/tasks/:id
-```
-
-```json
-{
-  "title": "Build complete task API",
-  "description": "Update task endpoint coverage",
-  "priority": "critical",
-  "status": "in_progress",
-  "dueDate": "2026-07-05",
-  "estimatedHours": 16
-}
-```
-
-If `status` changes through this endpoint, an activity log entry is created with the previous status, new status, changed fields, user, IP address, and timestamp.
-
-### Change Task Status
-
-```http
-PUT /api/tasks/:id/status
-```
-
-Allowed roles: `admin`, `project_manager`, `member`
-
-```json
-{
-  "status": "completed"
-}
-```
-
-Creates an activity log entry containing:
-
-- User who changed the status
-- Previous status
-- New status
-- Timestamp
-- IP address
-- Change metadata
-
-### Add Comment
-
-```http
-POST /api/tasks/:id/comments
-```
-
-```json
-{
-  "body": "This is ready for review.",
-  "parentComment": null,
-  "attachments": [
-    {
-      "filename": "requirements.pdf",
-      "url": "https://example.com/files/requirements.pdf"
-    }
-  ]
-}
-```
-
-Use `parentComment` to create a discussion thread.
-
-### Create Subtask
-
-```http
-POST /api/tasks/:id/subtasks
-```
-
-Allowed roles: `admin`, `project_manager`
-
-```json
-{
-  "title": "Write validation rules",
-  "description": "Add Joi schemas",
-  "assignee_id": "665f1f77c13a4a0012b90c13",
-  "priority": "medium",
-  "dueDate": "2026-06-25",
-  "estimatedHours": 4
-}
-```
-
-Subtasks are stored as tasks linked to the parent task with `parentTask`.
-
-### Record Time Log
-
-```http
-PUT /api/tasks/:id/time-log
-```
-
-Allowed roles: `admin`, `project_manager`, `member`
-
-```json
-{
-  "hours": 2.5,
-  "note": "Implemented status audit logging",
-  "entryDate": "2026-06-13"
-}
-```
-
-This endpoint:
-
-- Creates a time log entry
-- Updates the task's `actualHours`
-- Adds activity history for the time entry
-
-## Task Status Values
-
-- `backlog`
-- `in_progress`
-- `review`
-- `blocked`
-- `completed`
-- `cancelled`
-
-## Priority Values
-
-- `low`
-- `medium`
-- `high`
-- `critical`
-
-## Error Format
-
-Typical error response:
-
-```json
-{
-  "success": false,
-  "message": "Validation error",
-  "errors": ["\"title\" is required"]
-}
-```
+- `deadline`
+- `project`
+- `assignee`
+- `isActive`
 
 ## Notes
 
-- MongoDB must be running before starting the server.
-- Project, milestone, and user records must exist before assigning them to tasks.
-- Milestones must belong to the selected project.
-- Task route access is restricted by JWT authentication and role checks.
+- This module stores user records and does not delete them on status changes.
+- Invitation tokens are single-use and expire automatically.
+- Role-based access controls are enforced through middleware.
+
+## License
+
+MIT

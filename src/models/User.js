@@ -1,32 +1,12 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const roles = ['Admin', 'Manager', 'Developer', 'Designer', 'Intern', 'Client'];
-
-const userSchema = new mongoose.Schema(
-  {
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    name: { type: String, trim: true },
-    role: { type: String, enum: roles, default: 'Developer' },
-    password: { type: String },
-    status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
-    profile: {
-      title: String,
-      department: String,
-      phone: String,
-      location: String
-    },
-    invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    invitationToken: String,
-    invitationTokenExpiresAt: Date
-  },
-  { timestamps: true }
-);
-
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  if (!this.password) return false;
-  return bcrypt.compare(candidatePassword, this.password);
-};
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+  password: { type: String, required: true, select: false },
+  role: { type: String, enum: ['admin', 'manager', 'member'], default: 'member' },
+}, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
@@ -35,5 +15,8 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-const User = mongoose.model('User', userSchema);
-export { User, roles };
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+module.exports = mongoose.model('User', userSchema);

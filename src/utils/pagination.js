@@ -1,11 +1,8 @@
-const buildPagination = ({ page = 1, limit = 20 }) => {
-  const parsedPage = Math.max(Number(page) || 1, 1);
-  const parsedLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
-  return {
-    skip: (parsedPage - 1) * parsedLimit,
-    limit: parsedLimit,
-    page: parsedPage,
-  };
+const getPagination = (query) => {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(query.limit, 10) || 20));
+  const skip = (page - 1) * limit;
+  return { page, limit, skip };
 };
 
-module.exports = { buildPagination };
+module.exports = { getPagination };

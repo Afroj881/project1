@@ -1,19 +1,26 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import invoiceRoutes from './routes/invoiceRoutes.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { authMiddleware } from './middleware/authMiddleware.js';
+require('dotenv').config();
+const mongoose = require('mongoose');
+const app = require('./app');
 
-const app = express();
-const port = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(authMiddleware);
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI is required in .env');
+  process.exit(1);
+}
 
-app.use('/api/invoices', invoiceRoutes);
-app.use(errorHandler);
-
-app.listen(port, () => {
-  console.log(`Invoice API service running on http://localhost:${port}`);
-});
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => {
+    console.log('Connected to MongoDB');
+    app.listen(PORT, () => {
+      console.log(`Server listening on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  });

@@ -1,23 +1,27 @@
 {
-  "name": "invoice-apis",
+  "name": "file-upload-notification-api",
   "version": "1.0.0",
-  "description": "Enterprise-grade invoice API with invoicing, email, PDF generation, security, and audit logging.",
+  "description": "Enterprise-grade file upload, Cloudinary storage, and notification API for project management.",
   "main": "src/server.js",
-  "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "body-parser": "^1.20.2",
+    "cloudinary": "^1.37.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-validator": "^6.15.0",
-    "jsonwebtoken": "^9.0.3",
-    "mime-types": "^3.0.2",
-    "nodemailer": "^6.9.5",
-    "pdfkit": "^0.13.0",
-    "uuid": "^9.0.0"
+    "express-async-errors": "^3.1.1",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.5.4",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

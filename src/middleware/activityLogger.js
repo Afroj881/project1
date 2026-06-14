@@ -1,16 +1,15 @@
-import logger from '../config/logger.js';
+const ActivityLog = require('../models/ActivityLog');
 
-const activityLogger = (req, res, next) => {
-  res.on('finish', () => {
-    logger.info({
-      method: req.method,
-      path: req.originalUrl,
-      status: res.statusCode,
-      user: req.user ? { id: req.user._id, email: req.user.email, role: req.user.role } : null,
-      timestamp: new Date().toISOString()
-    }, 'request completed');
+async function activityLogger(req, res, next) {
+  res.on('finish', async () => {
+    try {
+      const user = req.user ? req.user._id : null;
+      await ActivityLog.create({ user, action: `${req.method} ${req.originalUrl}`, meta: { statusCode: res.statusCode } });
+    } catch (e) {
+      // ignore logging errors
+    }
   });
   next();
-};
+}
 
-export default activityLogger;
+module.exports = activityLogger;

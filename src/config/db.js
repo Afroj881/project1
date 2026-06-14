@@ -1,18 +1,12 @@
-import mongoose from 'mongoose';
-import logger from './logger.js';
+const mongoose = require('mongoose');
 
-const connectDatabase = async () => {
-  const mongoUri = process.env.MONGO_URI;
-  if (!mongoUri) {
-    throw new Error('MONGO_URI is not defined in environment variables');
-  }
-
-  await mongoose.connect(mongoUri, {
+async function connectDB() {
+  const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/client_portal';
+  await mongoose.connect(uri, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
   });
+  console.log('MongoDB connected');
+}
 
-  logger.info('Connected to MongoDB');
-};
-
-export default connectDatabase;
+module.exports = connectDB;

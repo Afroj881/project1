@@ -1,13 +1,18 @@
 const mongoose = require('mongoose');
 
-const projectSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    description: { type: String, default: '' },
-    status: { type: String, enum: ['active', 'archived', 'completed'], default: 'active' },
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  },
-  { timestamps: true }
-);
+const ProjectSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String },
+  client: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['active','paused','completed','archived'], default: 'active' },
+  milestones: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Milestone' }],
+  deliverables: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Deliverable' }],
+  assignedTeam: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  updates: [{
+    title: String,
+    body: String,
+    createdAt: { type: Date, default: Date.now }
+  }]
+}, { timestamps: true });
 
-module.exports = mongoose.model('Project', projectSchema);
+module.exports = mongoose.model('Project', ProjectSchema);

@@ -1,14 +1,12 @@
 const mongoose = require('mongoose');
 
-const milestoneSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true, trim: true },
-    description: { type: String, default: '' },
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
-    dueDate: { type: Date },
-    status: { type: String, enum: ['planned', 'in_progress', 'completed', 'cancelled'], default: 'planned' },
-  },
-  { timestamps: true }
-);
+const MilestoneSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String },
+  dueDate: { type: Date },
+  status: { type: String, enum: ['pending','in_progress','completed','blocked'], default: 'pending' },
+  progress: { type: Number, default: 0 },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+}, { timestamps: true });
 
-module.exports = mongoose.model('Milestone', milestoneSchema);
+module.exports = mongoose.model('Milestone', MilestoneSchema);

@@ -1,24 +1,49 @@
-import mongoose from 'mongoose';
-
-const statuses = ['Pending', 'In Progress', 'Completed', 'Blocked', 'Canceled'];
-const priorities = ['Low', 'Medium', 'High', 'Critical'];
+// src/models/Task.js
+const mongoose = require('mongoose');
 
 const taskSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true, trim: true },
-    description: { type: String, trim: true },
-    status: { type: String, enum: statuses, default: 'Pending' },
-    priority: { type: String, enum: priorities, default: 'Medium' },
-    deadline: { type: Date },
-    project: {
-      name: { type: String, required: true, trim: true },
-      code: { type: String, trim: true }
+    title: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    isActive: { type: Boolean, default: true }
+    description: String,
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'Project',
+      index: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'in_progress', 'review', 'completed', 'blocked'],
+      default: 'pending',
+    },
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'critical'],
+      default: 'medium',
+    },
+    deadline: Date,
+    attachments: [String],
+    comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
   },
   { timestamps: true }
 );
 
-const Task = mongoose.model('Task', taskSchema);
-export { Task, statuses, priorities };
+taskSchema.index({ projectId: 1, createdAt: -1 });
+taskSchema.index({ assignedTo: 1 });
+taskSchema.index({ status: 1 });
+
+module.exports = mongoose.model('Task', taskSchema);

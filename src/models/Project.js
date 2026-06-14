@@ -1,18 +1,33 @@
+// src/models/Project.js
 const mongoose = require('mongoose');
 
-const ProjectSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: { type: String },
-  client: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['active','paused','completed','archived'], default: 'active' },
-  milestones: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Milestone' }],
-  deliverables: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Deliverable' }],
-  assignedTeam: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  updates: [{
-    title: String,
-    body: String,
-    createdAt: { type: Date, default: Date.now }
-  }]
-}, { timestamps: true });
+const projectSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: String,
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+    },
+    deadline: Date,
+    status: {
+      type: String,
+      enum: ['active', 'on_hold', 'completed', 'cancelled'],
+      default: 'active',
+    },
+    teamMembers: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        role: String,
+      },
+    ],
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('Project', ProjectSchema);
+module.exports = mongoose.model('Project', projectSchema);

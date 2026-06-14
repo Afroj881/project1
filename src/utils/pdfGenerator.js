@@ -1,40 +1,81 @@
-import PDFDocument from 'pdfkit';
+// src/utils/pdfGenerator.js
+const PDFDocument = require('pdfkit');
 
-export function generateInvoicePdf(invoice, client, project) {
-  return new Promise((resolve) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    const buffers = [];
+/**
+ * Generate PDF invoice
+ * @param {Object} invoiceData - Invoice data
+ * @returns {Promise<Buffer>} - PDF buffer
+ */
+const generateInvoicePDF = (invoiceData) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+      });
 
-    doc.on('data', (chunk) => buffers.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(buffers)));
+      const chunks = [];
 
-    doc.fontSize(20).text('Invoice', { align: 'center' });
-    doc.moveDown();
+      doc.on('data', chunk => {
+        chunks.push(chunk);
+      });
 
-    doc.fontSize(12).text(`Invoice Number: ${invoice.invoiceNumber}`);
-    doc.text(`Status: ${invoice.status}`);
-    doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`);
-    doc.text(`Client: ${client.name}`);
-    doc.text(`Project: ${project?.name || 'Unknown'}`);
-    doc.moveDown();
+      doc.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        resolve(buffer);
+      });
 
-    doc.text('Items:', { underline: true });
-    invoice.items.forEach((item) => {
-      doc.text(`- ${item.description}: ${item.quantity} x ${item.rate.toFixed(2)} @ ${item.gstPercentage}% GST`);
-    });
-    doc.moveDown();
+      doc.on('error', reject);
 
-    doc.text(`Subtotal: ${invoice.subtotal.toFixed(2)}`);
-    doc.text(`GST: ${invoice.gstAmount.toFixed(2)}`);
-    doc.text(`Discount: ${invoice.discount.toFixed(2)}`);
-    doc.text(`Total: ${invoice.total.toFixed(2)}`);
-    doc.moveDown();
+      // Header
+      doc.fontSize(20).text('INVOICE', 50, 50);
+      doc.fontSize(10).text(`Invoice #: ${invoiceData.invoiceNumber}`, 50, 100);
+      doc.text(`Date: ${new Date(invoiceData.issueDate).toLocaleDateString()}`, 50, 120);
+      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, 50, 140);
 
-    if (invoice.notes) {
-      doc.text('Notes:', { underline: true });
-      doc.text(invoice.notes);
+      // Client info
+      doc.fontSize(12).text('Bill To:', 50, 200);
+      doc.fontSize(10).text(invoiceData.clientName, 50, 220);
+      doc.text(invoiceData.clientEmail || '', 50, 240);
+
+      // Table header
+      const tableTop = 300;
+      doc.fontSize(11).text('Description', 50, tableTop);
+      doc.text('Quantity', 250, tableTop);
+      doc.text('Rate', 350, tableTop);
+      doc.text('Amount', 450, tableTop);
+
+      // Table content
+      let yPosition = tableTop + 25;
+      if (invoiceData.items && invoiceData.items.length > 0) {
+        invoiceData.items.forEach(item => {
+          doc.fontSize(10)
+            .text(item.description, 50, yPosition)
+            .text(item.quantity, 250, yPosition)
+            .text(`$${parseFloat(item.rate).toFixed(2)}`, 350, yPosition)
+            .text(`$${parseFloat(item.amount).toFixed(2)}`, 450, yPosition);
+          yPosition += 30;
+        });
+      }
+
+      // Total
+      yPosition += 10;
+      doc.fontSize(12).text(`Total: ${invoiceData.currency} ${parseFloat(invoiceData.amount).toFixed(2)}`, 350, yPosition);
+
+      // Notes
+      if (invoiceData.notes) {
+        yPosition += 50;
+        doc.fontSize(10).text('Notes:', 50, yPosition);
+        doc.fontSize(9).text(invoiceData.notes, 50, yPosition + 20, { width: 500 });
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
     }
-
-    doc.end();
   });
-}
+};
+
+module.exports = {
+  generateInvoicePDF,
+};

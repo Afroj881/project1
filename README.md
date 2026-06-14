@@ -1,134 +1,135 @@
-# Team Management API
+# Invoice APIs
 
-A Node.js, Express, and MongoDB API module for enterprise team management with invitation workflows, role-based access control, workload analytics, and task management.
+Enterprise-grade invoice API scaffold with automatic invoice number generation, item-level calculations, status workflows, PDF generation, email delivery, and role-based authorization.
 
 ## Features
 
-- `GET /api/team` - Retrieve all team members (Admin and Manager only)
-- `POST /api/team/invite` - Send email invitations with secure invitation tokens
-- `POST /api/team/accept-invite` - Accept invitation, set password, complete profile, and activate account
-- `PUT /api/team/:id/role` - Update a member's role (Admin only)
-- `PUT /api/team/:id/status` - Activate or deactivate a member
-- `GET /api/team/:id/tasks` - Fetch all tasks assigned to a team member
-- `GET /api/team/workload` - Generate workload overview with pending, overdue, and distribution metrics
+- `POST /api/invoices` to create a new invoice
+- `GET /api/invoices` to retrieve paginated invoices with filtering and search
+- `GET /api/invoices/:id` to fetch invoice details with client/project info
+- `PUT /api/invoices/:id` to update invoices in `draft` status only
+- `PUT /api/invoices/:id/send` to send invoice documents and email the client
+- `PUT /api/invoices/:id/mark-paid` to record payment and set `paidAt`
+- `GET /api/invoices/overdue` to retrieve overdue invoices
+- Automatic subtotal, GST, discount, and total calculation
 - Authentication and role-based authorization
-- Activity logging and centralized error handling
-- Pagination support for team member and task listings
+- Audit logging for invoice events
+- PDF generation and email attachment support
 
 ## Getting Started
 
-### Prerequisites
+### Requirements
 
-- Node.js 18+ or newer
-- MongoDB running locally or remotely
-- SMTP credentials for email delivery
+- Node.js 18+ or compatible
+- npm
 
-### Installation
-
-1. Clone the repository or copy files into your workspace.
-2. Install dependencies:
+### Install Dependencies
 
 ```bash
+cd "C:\Users\afroj\Documents\Invoice APIs"
 npm install
 ```
 
-3. Create a `.env` file in the project root using `.env.example`:
+### Run the API
 
 ```bash
-cp .env.example .env
+npm start
 ```
 
-4. Update `.env` with your MongoDB URI and email service credentials.
+The server listens on `http://localhost:4000` by default.
 
-### Environment Variables
+## Authentication
 
-Required variables:
+This project includes a simple JWT-based auth middleware for development convenience. Use an Authorization header with a Bearer token.
 
-- `PORT` - Server port (default: 4000)
-- `MONGO_URI` - MongoDB connection string
-- `JWT_SECRET` - Secret for signing auth tokens
-- `JWT_EXPIRES_IN` - auth token expiration (example: `1d`)
-- `INVITE_TOKEN_EXPIRES_IN` - invitation token expiration in days
-- `EMAIL_HOST` - SMTP hostname
-- `EMAIL_PORT` - SMTP port
-- `EMAIL_SECURE` - `true` or `false`
-- `EMAIL_USER` - SMTP username
-- `EMAIL_PASS` - SMTP password
-- `EMAIL_FROM` - sender address for invitation emails
-- `APP_BASE_URL` - base URL used for invitation links
+Example users are seeded in `src/middleware/authMiddleware.js`:
 
-### Running the Server
+- `admin@example.com` (role: `admin`)
+- `accountant@example.com` (role: `accountant`)
+- `viewer@example.com` (role: `viewer`)
 
-```bash
-npm run dev
-```
-
-Then visit `http://localhost:4000` to confirm the API is running.
+For development, you can generate tokens using the `generateTestToken` helper from `src/middleware/authMiddleware.js`.
 
 ## API Endpoints
 
-### Authentication
+### Create Invoice
 
-- `POST /api/auth/login`
-  - body: `{ "email": "user@example.com", "password": "password" }`
+`POST /api/invoices`
 
-### Team Management
+Body:
 
-- `GET /api/team`
-  - Roles: `Admin`, `Manager`
-  - Query params: `page`, `limit`
+```json
+{
+  "client_id": "client-1",
+  "project_id": "project-1",
+  "items": [
+    { "description": "Design", "quantity": 2, "rate": 200, "gstPercentage": 18 },
+    { "description": "Development", "quantity": 5, "rate": 100, "gstPercentage": 18 }
+  ],
+  "discount": 50,
+  "dueDate": "2026-07-14",
+  "notes": "Thank you for your business."
+}
+```
 
-- `POST /api/team/invite`
-  - Roles: `Admin`, `Manager`
-  - body: `{ "email": "invitee@example.com", "role": "Developer" }`
+### List Invoices
 
-- `POST /api/team/accept-invite`
-  - body: `{ "token": "...", "password": "secret", "name": "Jane Doe", "profile": { "title": "Engineer" } }`
+`GET /api/invoices`
 
-- `PUT /api/team/:id/role`
-  - Roles: `Admin`
-  - body: `{ "role": "Manager" }`
+Query parameters:
 
-- `PUT /api/team/:id/status`
-  - Roles: `Admin`
-  - body: `{ "status": "Active" }`
-
-- `GET /api/team/:id/tasks`
-  - Roles: authenticated users
-  - Query params: `page`, `limit`
-
-- `GET /api/team/workload`
-  - Roles: `Admin`, `Manager`
-
-## Data Models
-
-### User
-
-- `email`
-- `name`
-- `role`
-- `password`
+- `page`
+- `pageSize`
 - `status`
-- `profile`
-- `invitationToken`
-- `invitationTokenExpiresAt`
+- `client_id`
+- `project_id`
+- `fromDate`
+- `toDate`
+- `search`
 
-### Task
+### Get Invoice Details
 
-- `title`
-- `description`
-- `status`
-- `priority`
-- `deadline`
-- `project`
-- `assignee`
-- `isActive`
+`GET /api/invoices/:id`
+
+### Update Invoice
+
+`PUT /api/invoices/:id`
+
+Only allowed when invoice status is `draft`.
+
+### Send Invoice
+
+`PUT /api/invoices/:id/send`
+
+Changes invoice status to `sent`, generates a PDF, and emails it to the client.
+
+### Mark Invoice Paid
+
+`PUT /api/invoices/:id/mark-paid`
+
+Records payment and updates `paidAt`.
+
+### Overdue Invoices
+
+`GET /api/invoices/overdue`
+
+Retrieves invoices that are unpaid and past the due date.
+
+## Architecture
+
+- `src/server.js` - Express app entrypoint
+- `src/routes/` - API route definitions
+- `src/controllers/` - Request handlers
+- `src/services/` - Business logic
+- `src/models/` - In-memory data models
+- `src/middleware/` - Auth, validation, and error handling
+- `src/utils/` - Invoice calculations, PDF generation, and email helper
 
 ## Notes
 
-- This module stores user records and does not delete them on status changes.
-- Invitation tokens are single-use and expire automatically.
-- Role-based access controls are enforced through middleware.
+- This project uses in-memory storage for invoices, clients, and projects. For production, connect to a database and replace the temporary data stores.
+- Email sending currently uses `nodemailer` with `jsonTransport` for local testing. Replace with a real SMTP or email service provider in production.
+- Invoice numbers follow the pattern `INV-<year>-<sequence>`.
 
 ## License
 
